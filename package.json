@@ -1,0 +1,55 @@
+{
+  "name": "newui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "_comment_scripts": {
+    "dev": "npm run dev      # Start development server with hot reload",
+    "build": "npm run build  # Build the app for production",
+    "preview": "npm run preview  # Preview the production build locally",
+    "start": "npm run start  # Alias for preview",
+    "prod": "npm run prod    # Build and preview in production mode"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "vite preview",
+    "prod": "cross-env NODE_ENV=production vite build && vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.0.1",
+    "@mui/material": "^7.0.1",
+    "axios": "^1.8.4",
+    "install": "^0.13.0",
+    "lucide-react": "^0.487.0",
+    "npm": "^11.4.1",
+    "react": "^19.0.0",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.0.0",
+    "react-google-recaptcha": "^3.1.0",
+    "react-hook-form": "^7.56.0",
+    "react-icons": "^5.5.0",
+    "react-phone-input-2": "^2.15.1",
+    "react-router-dom": "^7.4.0",
+    "react-to-print": "^3.0.5",
+    "recharts": "^2.15.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.21.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^15.15.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.2.0"
+  }
+}
