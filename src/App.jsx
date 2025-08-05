@@ -12,10 +12,21 @@ import PrintingInspectionForm from './components/forms/printing-inspection-form/
 import LineClearanceForm from './components/forms/line_clearance_form/LineClearanceForm';
 import FormDashboard from './components/dashboards/FormDashboard';
 import { AuthProvider, useAuth } from './components/context/AuthContext';
+import { CalendarProvider } from './components/context/CalendarContext';
 import QADashboard from './components/dashboards/QADashboard';
 import Chatbot from './components/Chatbot';
 import CoatingInspectionForm from './components/forms/fair-coating/CoatingInspectionForm';
 import QualityInspectionForm from './components/forms/qulality _inspection_form/QualityInspectionForm';
+import ProtectedRoute from './components/ProtectedRoute';
+import CalendarLayout from './components/calendar/CalendarLayout';
+// Import Calendar Components
+import CalendarView from './components/calendar/CalendarView';
+import CalendarToolbar from './components/calendar/CalendarToolbar';
+import EventModal from './components/calendar/EventModal';
+import EventForm from './components/calendar/EventForm';
+import EventList from './components/calendar/EventList';
+import YearView from './components/calendar/YearView';
+import './App.css'
 import logo from './assets/Qsutra_RMS_White_Logo_Small.png';
 import agilogo from './assets/agilogo.png';
 
@@ -80,7 +91,7 @@ const InspectionFormLayout = ({ user, onLogout, children }) => {
             )}
           </div>
 
-          {/* Right Side - AGI Logo + User Info + Logout */}
+          {/* Right Side - AGI Logo + User Info + Calendar + Logout */}
           <div className="flex items-center gap-2">
             {/* AGI Logo */}
             <div className="flex items-center justify-center bg-background bg-white pt-1 pb-1 px-4 rounded ">
@@ -119,6 +130,24 @@ const InspectionFormLayout = ({ user, onLogout, children }) => {
                 {getRoleDisplayName(user?.role)}
               </span>
             </div>
+            
+            {/* Calendar Button */}
+            <button
+              onClick={() => navigate('/calendar')}
+              className="bg-green-600 hover:bg-green-700 text-white text-sm py-1 px-3 rounded mr-2"
+            >
+              <span className="flex items-center gap-1">
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                </svg>
+                Calendar
+              </span>
+            </button>
+            
             {/* Logout Button */}
             <button
               onClick={onLogout}
@@ -202,6 +231,17 @@ const AuthRouter = () => {
         </Layout>
       } />
 
+      {/* Calendar Route - Available to all authenticated users */}
+      <Route path="/calendar" element={
+        <ProtectedRoute requireAuth={true}>
+          <CalendarProvider>
+            <CalendarLayout user={user} onLogout={logout}>
+              <CalendarView />
+            </CalendarLayout>
+          </CalendarProvider>
+        </ProtectedRoute>
+      } />
+
       {/* Role-based Dashboard Routes - Updated to use role utilities */}
       <Route path="/operator" element={
         isOperator(user?.role) ? (
@@ -254,91 +294,91 @@ const AuthRouter = () => {
 
       {/* Form Lists */}
       <Route path="/forms/:formType" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <InspectionFormList />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
 
       {/* Coating Inspection Forms */}
       <Route path="/forms/coating/new" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <CoatingInspectionForm isNew={true} />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
       <Route path="/forms/coating/:id" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <CoatingInspectionForm />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
 
       {/* Printing Forms */}
       <Route path="/forms/printing/new" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <PrintingInspectionForm isNew={true} />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
       <Route path="/forms/printing/:id" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <PrintingInspectionForm />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
 
       {/* Line Clearance Forms */}
       <Route path="/forms/clearance/new" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <LineClearanceForm isNew={true} />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
       <Route path="/forms/clearance/:id" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <LineClearanceForm />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
 
       {/* Quality Inspection Forms */}
       <Route path="/forms/quality/new" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <QualityInspectionForm isNew={true} />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
       <Route path="/forms/quality/:id" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <QualityInspectionForm />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
 
       {/* Legacy Routes (keep for backward compatibility) */}
       <Route path="/line-clearance-form" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <LineClearanceForm isNew={true} />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
       <Route path="/line-clearance-form/:id" element={
-        isAuthenticated ? (
+        <ProtectedRoute requireAuth={true}>
           <InspectionFormLayout user={user} onLogout={logout}>
             <LineClearanceForm />
           </InspectionFormLayout>
-        ) : <Navigate to="/" replace />
+        </ProtectedRoute>
       } />
 
       {/* Catch-all route */}

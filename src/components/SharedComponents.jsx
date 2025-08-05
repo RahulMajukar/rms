@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { Avatar, Typography, Button } from '@mui/material';
 import qlogo from '../assets/Qsutra_RMS_White_Logo_Small.png';
+import { useNavigate } from 'react-router-dom';
 
 const logoUrl = "http://localhost:8080/api/logo";
 
 // Navigation header component shared across all dashboards
 export const TopNavBar = ({ user, onLogout }) => {
     const [profilePhotoError, setProfilePhotoError] = useState(false);
-
+    const navigate = useNavigate();
     const getBgColorByRole = (role) => {
         const upperRole = role?.toUpperCase();
         switch (upperRole) {
@@ -148,15 +149,22 @@ export const TopNavBar = ({ user, onLogout }) => {
                         </Typography>
                     </div>
 
-                    <Button
-                        onClick={onLogout}
-                        variant="contained"
-                        color="success"
-                        size="small"
-                        startIcon={<LogoutIcon />}
+                    {/* Calendar Button */}
+                    <button
+                        onClick={() => navigate('/calendar')}
+                        className="bg-green-600 hover:bg-green-700 text-white text-sm py-1 px-3 rounded mr-2"
                     >
-                        Calendar
-                    </Button>
+                        <span className="flex items-center gap-1">
+                            <svg
+                                className="w-5 h-5"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
+                            </svg>
+                            Calendar
+                        </span>
+                    </button>
                     <Button
                         onClick={onLogout}
                         variant="contained"
