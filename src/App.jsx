@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-
 import LoginForm from './components/LoginForm';
 import OperatorDashboard from './components/dashboards/OperatorDashboard';
 import AVPDashboard from './components/dashboards/AVPDashboard';
@@ -10,7 +8,6 @@ import MasterDashboard from './components/dashboards/MasterDashboard';
 import InspectionFormList from './components/InspectionFormList';
 import PrintingInspectionForm from './components/forms/printing-inspection-form/PrintingInspectionForm';
 import LineClearanceForm from './components/forms/line_clearance_form/LineClearanceForm';
-import FormDashboard from './components/dashboards/FormDashboard';
 import { AuthProvider, useAuth } from './components/context/AuthContext';
 import { CalendarProvider } from './components/context/CalendarContext';
 import QADashboard from './components/dashboards/QADashboard';
@@ -19,16 +16,9 @@ import CoatingInspectionForm from './components/forms/fair-coating/CoatingInspec
 import QualityInspectionForm from './components/forms/qulality _inspection_form/QualityInspectionForm';
 import ProtectedRoute from './components/ProtectedRoute';
 import CalendarLayout from './components/calendar/CalendarLayout';
-// Import Calendar Components
 import CalendarView from './components/calendar/CalendarView';
-import CalendarToolbar from './components/calendar/CalendarToolbar';
-import EventModal from './components/calendar/EventModal';
-import EventForm from './components/calendar/EventForm';
-import EventList from './components/calendar/EventList';
-import YearView from './components/calendar/YearView';
 import './App.css'
 import logo from './assets/Qsutra_RMS_White_Logo_Small.png';
-import agilogo from './assets/agilogo.png';
 
 // Import role utilities
 import { 

@@ -206,8 +206,8 @@ export default function EventForm({ event, onClose, onSave }) {
               >
                 <option value="work">Work</option>
                 <option value="personal">Personal</option>
-                <option value="health">Health</option>
-                <option value="education">Education</option>
+                {/* <option value="health">Health</option>
+                <option value="education">Education</option> */}
               </select>
             </div>
             <div>

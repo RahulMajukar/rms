@@ -24,6 +24,7 @@ const LoginForm = ({ onLogin }) => {
         id: user.id,
         role: role,
         name: user.name,
+        email: user.email, 
         field: data.selectedField,
       });
     } catch (error) {

@@ -18,8 +18,8 @@ export default function EventModal({ event, onClose, onEdit, onDelete }) {
     const colors = {
       work: 'bg-blue-100 text-blue-800',
       personal: 'bg-green-100 text-green-800',
-      health: 'bg-yellow-100 text-yellow-800',
-      education: 'bg-purple-100 text-purple-800'
+      // health: 'bg-yellow-100 text-yellow-800',
+      // education: 'bg-purple-100 text-purple-800'
     }
     return colors[category] || 'bg-gray-100 text-gray-800'
   }

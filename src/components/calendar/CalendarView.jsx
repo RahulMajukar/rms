@@ -350,8 +350,8 @@ export default function CalendarView() {
                 <option value="all">All Categories</option>
                 <option value="work">Work</option>
                 <option value="personal">Personal</option>
-                <option value="health">Health</option>
-                <option value="education">Education</option>
+                {/* <option value="health">Health</option>
+                <option value="education">Education</option> */}
               </select>
             </div>
           </div>

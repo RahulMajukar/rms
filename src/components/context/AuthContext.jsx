@@ -75,9 +75,11 @@ export const AuthProvider = ({ children }) => {
     const cleanedUserData = {
       ...userData,
       name: userData.name ? userData.name.replace(/^(Mr\.|Ms\.|Mrs\.|Dr\.)\s+/i, '') : '',
-      role: normalizeRole(userData.role) // Normalize role on login
+      role: normalizeRole(userData.role),
+      email: userData.email
     };
     setUser(cleanedUserData);
+    console.log('User logged in:', cleanedUserData);
     localStorage.setItem('user', JSON.stringify(cleanedUserData));
     return true;
   };

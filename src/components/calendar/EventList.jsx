@@ -26,8 +26,8 @@ export default function EventList({ events, onEventClick, currentDate, detailed 
     const colors = {
       work: 'bg-blue-500',
       personal: 'bg-green-500',
-      health: 'bg-yellow-500',
-      education: 'bg-purple-500'
+      // health: 'bg-yellow-500',
+      // education: 'bg-purple-500'
     }
     return colors[category] || 'bg-gray-500'
   }

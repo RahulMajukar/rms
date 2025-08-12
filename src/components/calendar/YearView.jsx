@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import moment from 'moment'
-import { ChevronDown, ChevronUp, Calendar, Clock, MapPin, Users } from 'lucide-react'
+import { ChevronDown, ChevronUp, Calendar, Clock, MapPin, Users, BarChart3 } from 'lucide-react'
 
 export default function YearView({ date, events, onEventClick, onDateClick, onMonthClick }) {
   const [expandedMonths, setExpandedMonths] = useState({})
+  const [showSummary, setShowSummary] = useState(false)
   
   const currentYear = moment(date).year()
   const today = moment()
@@ -29,8 +30,8 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
     const colors = {
       work: 'bg-blue-500',
       personal: 'bg-green-500',
-      health: 'bg-yellow-500',
-      education: 'bg-purple-500'
+      // health: 'bg-yellow-500',
+      // education: 'bg-purple-500'
     }
     return colors[category] || 'bg-gray-500'
   }
@@ -142,7 +143,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
     const sortedDates = Object.keys(groupedEvents).sort()
     
     return (
-      <div className="mt-4 bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+      <div className="mt-4 bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {sortedDates.length === 0 ? (
           <p className="text-sm text-gray-500 text-center py-4">
             No events this month
@@ -202,11 +203,25 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
   }
   
   return (
-    <div className="h-full overflow-y-auto bg-white">
+    <div className="h-screen flex flex-col bg-white overflow-hidden">
       {/* Year Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-6 z-10">
+      <div className="sticky top-0 bg-white border-b border-gray-200 p-6 z-10 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">{currentYear}</h1>
+          <div className="flex items-center space-x-4">
+            <h1 className="text-3xl font-bold text-gray-900">{currentYear}</h1>
+            <button
+              onClick={() => setShowSummary(!showSummary)}
+              className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Summary</span>
+              {showSummary ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+          </div>
           <div className="flex items-center space-x-4 text-sm text-gray-600">
             <span className="flex items-center">
               <Calendar className="w-4 h-4 mr-2" />
@@ -216,133 +231,139 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
         </div>
       </div>
 
-      {/* Months Grid */}
-      <div className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {Array.from({ length: 12 }, (_, monthIndex) => {
-            const monthName = moment().month(monthIndex).format('MMMM')
-            const monthEvents = getEventsForMonth(monthIndex)
-            const isExpanded = expandedMonths[monthIndex]
-            const isCurrentMonth = moment().year(currentYear).month(monthIndex).isSame(today, 'month')
+      {/* Summary Section (Collapsible) */}
+      {showSummary && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 p-6 flex-shrink-0">
+          <div className="bg-white rounded-xl p-6 border border-blue-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+              <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+              {currentYear} Summary
+            </h3>
             
-            return (
-              <div
-                key={monthIndex}
-                className={`bg-white rounded-lg border-2 transition-all duration-200 hover:shadow-lg ${
-                  isCurrentMonth 
-                    ? 'border-blue-500 shadow-md' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                {/* Month Header */}
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <button
-                        onClick={() => onMonthClick(moment().year(currentYear).month(monthIndex).toDate())}
-                        className={`text-lg font-semibold hover:text-blue-600 transition-colors ${
-                          isCurrentMonth ? 'text-blue-600' : 'text-gray-900'
-                        }`}
-                      >
-                        {monthName}
-                      </button>
-                      <div className="text-sm text-gray-500 mt-1">
-                        {monthEvents.length} event{monthEvents.length !== 1 ? 's' : ''}
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-gray-50 rounded-lg p-4 text-center border border-blue-200">
+                <div className="text-2xl font-bold text-blue-600 mb-1">
+                  {events.length}
+                </div>
+                <div className="text-sm text-gray-600">Total Events</div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4 text-center border border-blue-200">
+                <div className="text-2xl font-bold text-blue-500 mb-1">
+                  {events.filter(e => e.category === 'work').length}
+                </div>
+                <div className="text-sm text-gray-600">Work Events</div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4 text-center border border-green-200">
+                <div className="text-2xl font-bold text-green-500 mb-1">
+                  {events.filter(e => e.category === 'personal').length}
+                </div>
+                <div className="text-sm text-gray-600">Personal Events</div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4 text-center border border-yellow-200">
+                <div className="text-2xl font-bold text-yellow-500 mb-1">
+                  {events.filter(e => e.category === 'health').length}
+                </div>
+                <div className="text-sm text-gray-600">Health Events</div>
+              </div>
+            </div>
+            
+            {/* Monthly Event Distribution Chart */}
+            <div className="bg-gray-50 rounded-lg p-6 border border-blue-200">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Monthly Distribution</h4>
+              <div className="flex items-end justify-between space-x-2 h-32">
+                {Array.from({ length: 12 }, (_, monthIndex) => {
+                  const monthEvents = getEventsForMonth(monthIndex)
+                  const maxEvents = Math.max(...Array.from({ length: 12 }, (_, i) => getEventsForMonth(i).length), 1)
+                  const height = (monthEvents.length / maxEvents) * 100
+                  
+                  return (
+                    <div key={monthIndex} className="flex-1 flex flex-col items-center">
+                      <div className="w-full bg-gray-200 rounded-t flex flex-col justify-end relative" style={{ height: '100px' }}>
+                        <div
+                          className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t transition-all duration-300 hover:from-blue-600 hover:to-blue-500"
+                          style={{ height: `${Math.max(height, 4)}%` }}
+                          title={`${moment().month(monthIndex).format('MMM')}: ${monthEvents.length} events`}
+                        />
+                        {monthEvents.length > 0 && (
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-5 text-xs font-medium text-gray-700">
+                            {monthEvents.length}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-2 font-medium">
+                        {moment().month(monthIndex).format('MMM')}
                       </div>
                     </div>
-                    <button
-                      onClick={() => toggleMonthExpansion(monthIndex)}
-                      className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                    >
-                      {isExpanded ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Month Content */}
-                <div className="p-4">
-                  {renderMiniCalendar(monthIndex)}
-                  
-                  {/* Expanded Event List */}
-                  {isExpanded && renderExpandedMonth(monthIndex)}
-                </div>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
-        
-        {/* Year Summary */}
-        <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-            <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-            {currentYear} Summary
-          </h3>
-          
-          {/* Summary Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-lg p-4 text-center border border-blue-200">
-              <div className="text-2xl font-bold text-blue-600 mb-1">
-                {events.length}
-              </div>
-              <div className="text-sm text-gray-600">Total Events</div>
-            </div>
-            
-            <div className="bg-white rounded-lg p-4 text-center border border-blue-200">
-              <div className="text-2xl font-bold text-blue-500 mb-1">
-                {events.filter(e => e.category === 'work').length}
-              </div>
-              <div className="text-sm text-gray-600">Work Events</div>
-            </div>
-            
-            <div className="bg-white rounded-lg p-4 text-center border border-green-200">
-              <div className="text-2xl font-bold text-green-500 mb-1">
-                {events.filter(e => e.category === 'personal').length}
-              </div>
-              <div className="text-sm text-gray-600">Personal Events</div>
-            </div>
-            
-            <div className="bg-white rounded-lg p-4 text-center border border-yellow-200">
-              <div className="text-2xl font-bold text-yellow-500 mb-1">
-                {events.filter(e => e.category === 'health').length}
-              </div>
-              <div className="text-sm text-gray-600">Health Events</div>
             </div>
           </div>
-          
-          {/* Monthly Event Distribution Chart */}
-          <div className="bg-white rounded-lg p-6 border border-blue-200">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">Monthly Distribution</h4>
-            <div className="flex items-end justify-between space-x-2 h-32">
-              {Array.from({ length: 12 }, (_, monthIndex) => {
-                const monthEvents = getEventsForMonth(monthIndex)
-                const maxEvents = Math.max(...Array.from({ length: 12 }, (_, i) => getEventsForMonth(i).length), 1)
-                const height = (monthEvents.length / maxEvents) * 100
-                
-                return (
-                  <div key={monthIndex} className="flex-1 flex flex-col items-center">
-                    <div className="w-full bg-gray-200 rounded-t flex flex-col justify-end relative" style={{ height: '100px' }}>
-                      <div
-                        className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t transition-all duration-300 hover:from-blue-600 hover:to-blue-500"
-                        style={{ height: `${Math.max(height, 4)}%` }}
-                        title={`${moment().month(monthIndex).format('MMM')}: ${monthEvents.length} events`}
-                      />
-                      {monthEvents.length > 0 && (
-                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-5 text-xs font-medium text-gray-700">
-                          {monthEvents.length}
+        </div>
+      )}
+
+      {/* Months Grid - Now with proper overflow */}
+      <div className="flex-1 overflow-y-auto" style={{ height: 'calc(100vh - 140px)' }}>
+        <div className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 min-h-full">
+            {Array.from({ length: 12 }, (_, monthIndex) => {
+              const monthName = moment().month(monthIndex).format('MMMM')
+              const monthEvents = getEventsForMonth(monthIndex)
+              const isExpanded = expandedMonths[monthIndex]
+              const isCurrentMonth = moment().year(currentYear).month(monthIndex).isSame(today, 'month')
+              
+              return (
+                <div
+                  key={monthIndex}
+                  className={`bg-white rounded-lg border-2 transition-all duration-200 hover:shadow-lg h-fit ${
+                    isCurrentMonth 
+                      ? 'border-blue-500 shadow-md' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {/* Month Header */}
+                  <div className="p-3 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <button
+                          onClick={() => onMonthClick(moment().year(currentYear).month(monthIndex).toDate())}
+                          className={`text-base font-semibold hover:text-blue-600 transition-colors ${
+                            isCurrentMonth ? 'text-blue-600' : 'text-gray-900'
+                          }`}
+                        >
+                          {monthName}
+                        </button>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {monthEvents.length} event{monthEvents.length !== 1 ? 's' : ''}
                         </div>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-600 mt-2 font-medium">
-                      {moment().month(monthIndex).format('MMM')}
+                      </div>
+                      <button
+                        onClick={() => toggleMonthExpansion(monthIndex)}
+                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
-                )
-              })}
-            </div>
+                  
+                  {/* Month Content */}
+                  <div className="p-3">
+                    {renderMiniCalendar(monthIndex)}
+                    
+                    {/* Expanded Event List */}
+                    {isExpanded && renderExpandedMonth(monthIndex)}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
