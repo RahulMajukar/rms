@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import moment from 'moment'
 import { ChevronDown, ChevronUp, Calendar, Clock, MapPin, Users, BarChart3 } from 'lucide-react'
 
@@ -9,29 +9,55 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
   const currentYear = moment(date).year()
   const today = moment()
   
-  // Group events by month and date
-  const getEventsForMonth = (monthIndex) => {
-    const monthStart = moment().year(currentYear).month(monthIndex).startOf('month')
-    const monthEnd = moment().year(currentYear).month(monthIndex).endOf('month')
+  // Memoize expensive calculations
+  const { getEventsForMonth, getEventsForDate, monthlyStats } = useMemo(() => {
+    // Ensure events is an array and handle API data format
+    const validEvents = Array.isArray(events) ? events.filter(event => {
+      // Validate event data
+      return event && event.start && event.end && event.id
+    }) : []
+
+    const getEventsForMonth = (monthIndex) => {
+      const monthStart = moment().year(currentYear).month(monthIndex).startOf('month')
+      const monthEnd = moment().year(currentYear).month(monthIndex).endOf('month')
+      
+      return validEvents.filter(event => {
+        try {
+          const eventDate = moment(event.start)
+          return eventDate.isBetween(monthStart, monthEnd, 'day', '[]')
+        } catch (error) {
+          console.warn('Invalid event date:', event)
+          return false
+        }
+      })
+    }
     
-    return events.filter(event => {
-      const eventDate = moment(event.start)
-      return eventDate.isBetween(monthStart, monthEnd, 'day', '[]')
-    })
-  }
-  
-  const getEventsForDate = (date) => {
-    return events.filter(event => {
-      return moment(event.start).isSame(date, 'day')
-    })
-  }
+    const getEventsForDate = (date) => {
+      return validEvents.filter(event => {
+        try {
+          return moment(event.start).isSame(date, 'day')
+        } catch (error) {
+          console.warn('Invalid event date for comparison:', event)
+          return false
+        }
+      })
+    }
+
+    // Calculate monthly statistics
+    const monthlyStats = Array.from({ length: 12 }, (_, monthIndex) => ({
+      month: monthIndex,
+      eventCount: getEventsForMonth(monthIndex).length
+    }))
+
+    return { getEventsForMonth, getEventsForDate, monthlyStats }
+  }, [events, currentYear])
   
   const getCategoryColor = (category) => {
     const colors = {
       work: 'bg-blue-500',
       personal: 'bg-green-500',
-      // health: 'bg-yellow-500',
-      // education: 'bg-purple-500'
+      health: 'bg-yellow-500',
+      education: 'bg-purple-500'
     }
     return colors[category] || 'bg-gray-500'
   }
@@ -85,7 +111,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
             return (
               <div
                 key={`${weekIndex}-${dayIndex}`}
-                onClick={() => hasEvents && onDateClick(day.toDate())}
+                onClick={() => hasEvents && onDateClick && onDateClick(day.toDate())}
                 className={`
                   h-8 flex flex-col items-center justify-center relative cursor-pointer rounded-sm transition-colors
                   ${isCurrentMonth 
@@ -100,6 +126,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
                     ? 'bg-blue-50 border border-blue-200 hover:bg-blue-100' 
                     : ''
                   }
+                  ${hasEvents ? 'cursor-pointer' : 'cursor-default'}
                 `}
               >
                 <span className="text-xs font-medium">
@@ -111,7 +138,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
                   <div className="absolute bottom-0 flex space-x-0.5">
                     {dayEvents.slice(0, 3).map((event, index) => (
                       <div
-                        key={index}
+                        key={event.id || index}
                         className={`w-1 h-1 rounded-full ${getCategoryColor(event.category)}`}
                       />
                     ))}
@@ -133,11 +160,15 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
     const groupedEvents = {}
     
     monthEvents.forEach(event => {
-      const dateKey = moment(event.start).format('YYYY-MM-DD')
-      if (!groupedEvents[dateKey]) {
-        groupedEvents[dateKey] = []
+      try {
+        const dateKey = moment(event.start).format('YYYY-MM-DD')
+        if (!groupedEvents[dateKey]) {
+          groupedEvents[dateKey] = []
+        }
+        groupedEvents[dateKey].push(event)
+      } catch (error) {
+        console.warn('Error grouping event:', event, error)
       }
-      groupedEvents[dateKey].push(event)
     })
     
     const sortedDates = Object.keys(groupedEvents).sort()
@@ -163,7 +194,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
                     {dateEvents.map(event => (
                       <div
                         key={event.id}
-                        onClick={() => onEventClick(event)}
+                        onClick={() => onEventClick && onEventClick(event)}
                         className="flex items-start space-x-3 p-2 bg-white rounded-md hover:bg-gray-50 cursor-pointer transition-colors border border-gray-200"
                       >
                         <div className={`w-3 h-3 rounded-full mt-0.5 flex-shrink-0 ${getCategoryColor(event.category)}`} />
@@ -179,7 +210,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
                             {event.location && (
                               <span className="flex items-center">
                                 <MapPin className="w-3 h-3 mr-1" />
-                                {event.location}
+                                <span className="truncate max-w-20">{event.location}</span>
                               </span>
                             )}
                             {event.attendees && event.attendees.length > 0 && (
@@ -201,6 +232,13 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
       </div>
     )
   }
+
+  // Calculate statistics safely
+  const totalEvents = Array.isArray(events) ? events.length : 0
+  const workEvents = Array.isArray(events) ? events.filter(e => e.category === 'work').length : 0
+  const personalEvents = Array.isArray(events) ? events.filter(e => e.category === 'personal').length : 0
+  const healthEvents = Array.isArray(events) ? events.filter(e => e.category === 'health').length : 0
+  const educationEvents = Array.isArray(events) ? events.filter(e => e.category === 'education').length : 0
   
   return (
     <div className="h-screen flex flex-col bg-white overflow-hidden">
@@ -225,7 +263,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
           <div className="flex items-center space-x-4 text-sm text-gray-600">
             <span className="flex items-center">
               <Calendar className="w-4 h-4 mr-2" />
-              {events.length} events
+              {totalEvents} events
             </span>
           </div>
         </div>
@@ -233,7 +271,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
 
       {/* Summary Section (Collapsible) */}
       {showSummary && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 p-6 flex-shrink-0">
+        <div className="p-6 flex-shrink-0">
           <div className="bg-white rounded-xl p-6 border border-blue-200">
             <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
               <Calendar className="w-5 h-5 mr-2 text-blue-600" />
@@ -244,41 +282,41 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-gray-50 rounded-lg p-4 text-center border border-blue-200">
                 <div className="text-2xl font-bold text-blue-600 mb-1">
-                  {events.length}
+                  {totalEvents}
                 </div>
                 <div className="text-sm text-gray-600">Total Events</div>
               </div>
               
               <div className="bg-gray-50 rounded-lg p-4 text-center border border-blue-200">
                 <div className="text-2xl font-bold text-blue-500 mb-1">
-                  {events.filter(e => e.category === 'work').length}
+                  {workEvents}
                 </div>
                 <div className="text-sm text-gray-600">Work Events</div>
               </div>
               
               <div className="bg-gray-50 rounded-lg p-4 text-center border border-green-200">
                 <div className="text-2xl font-bold text-green-500 mb-1">
-                  {events.filter(e => e.category === 'personal').length}
+                  {personalEvents}
                 </div>
                 <div className="text-sm text-gray-600">Personal Events</div>
               </div>
               
               <div className="bg-gray-50 rounded-lg p-4 text-center border border-yellow-200">
                 <div className="text-2xl font-bold text-yellow-500 mb-1">
-                  {events.filter(e => e.category === 'health').length}
+                  {healthEvents}
                 </div>
                 <div className="text-sm text-gray-600">Health Events</div>
               </div>
             </div>
             
             {/* Monthly Event Distribution Chart */}
-            <div className="bg-gray-50 rounded-lg p-6 border border-blue-200">
+            {/* <div className="bg-gray-50 rounded-lg p-6 border border-blue-200"> */}
+            <div className="bg-gray-50 rounded-lg p-6 border">
               <h4 className="text-lg font-semibold text-gray-900 mb-4">Monthly Distribution</h4>
               <div className="flex items-end justify-between space-x-2 h-32">
-                {Array.from({ length: 12 }, (_, monthIndex) => {
-                  const monthEvents = getEventsForMonth(monthIndex)
-                  const maxEvents = Math.max(...Array.from({ length: 12 }, (_, i) => getEventsForMonth(i).length), 1)
-                  const height = (monthEvents.length / maxEvents) * 100
+                {monthlyStats.map(({ month: monthIndex, eventCount }) => {
+                  const maxEvents = Math.max(...monthlyStats.map(s => s.eventCount), 1)
+                  const height = (eventCount / maxEvents) * 100
                   
                   return (
                     <div key={monthIndex} className="flex-1 flex flex-col items-center">
@@ -286,11 +324,11 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
                         <div
                           className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t transition-all duration-300 hover:from-blue-600 hover:to-blue-500"
                           style={{ height: `${Math.max(height, 4)}%` }}
-                          title={`${moment().month(monthIndex).format('MMM')}: ${monthEvents.length} events`}
+                          title={`${moment().month(monthIndex).format('MMM')}: ${eventCount} events`}
                         />
-                        {monthEvents.length > 0 && (
+                        {eventCount > 0 && (
                           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-5 text-xs font-medium text-gray-700">
-                            {monthEvents.length}
+                            {eventCount}
                           </div>
                         )}
                       </div>
@@ -330,7 +368,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <button
-                          onClick={() => onMonthClick(moment().year(currentYear).month(monthIndex).toDate())}
+                          onClick={() => onMonthClick && onMonthClick(moment().year(currentYear).month(monthIndex).toDate())}
                           className={`text-base font-semibold hover:text-blue-600 transition-colors ${
                             isCurrentMonth ? 'text-blue-600' : 'text-gray-900'
                           }`}
