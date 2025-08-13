@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { 
   X, Plus, Minus, Calendar, Clock, MapPin, Users, FileText, Tag, 
   AlertTriangle, Bell, Save, Check, Eye, EyeOff, Info, Star,
-  Globe, Lock, Repeat, Trash2, Copy, Palette
+  Globe, Lock, Repeat, Trash2, Copy, Palette, Paperclip
 } from 'lucide-react'
 import moment from 'moment'
 
@@ -753,6 +753,41 @@ export default function EventForm({ event, onClose, onSave }) {
                       )}
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* File Attachments */}
+              <div className="space-y-3">
+                <label className="flex items-center text-sm font-medium text-gray-700">
+                  <Paperclip className="h-4 w-4 mr-2" />
+                  Attachments
+                </label>
+                
+                <div className="space-y-3">
+                  {/* File Drop Zone */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-400 transition-colors">
+                    <div className="flex flex-col items-center text-center">
+                      <Paperclip className="h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600">
+                        Drag & drop files here, or{' '}
+                        <label className="text-blue-500 hover:text-blue-600 cursor-pointer">
+                          browse
+                          <input
+                            type="file"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              // Handle file selection
+                              console.log(e.target.files)
+                            }}
+                          />
+                        </label>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Maximum file size: 10MB
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
