@@ -123,7 +123,7 @@ export default function CalendarToolbar({
                 onClick={() => onLayoutChange('calendar')}
                 className={`p-2 rounded-l-lg transition-colors ${
                   layout === 'calendar'
-                    ? 'bg-primary-600 text-white'
+                    ? 'btn-secondary text-white'
                     : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -133,7 +133,7 @@ export default function CalendarToolbar({
                 onClick={() => onLayoutChange('list')}
                 className={`p-2 rounded-r-lg border-l border-gray-300 transition-colors ${
                   layout === 'list'
-                    ? 'bg-primary-600 text-white'
+                    ? 'btn-secondary text-white'
                     : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -150,7 +150,7 @@ export default function CalendarToolbar({
                 onClick={() => onViewChange(viewType)}
                 className={`px-3 py-2 text-sm font-medium transition-colors first:rounded-l-lg last:rounded-r-lg ${
                   view === viewType
-                    ? 'bg-primary-600 text-white'
+                    ? 'btn-secondary text-white'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 border-r border-gray-300 last:border-r-0'
                 }`}
               >

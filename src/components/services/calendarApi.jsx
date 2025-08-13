@@ -1,15 +1,28 @@
-// services/calendarApi.js - Updated to use real backend API
+// Updated calendarApi.js with user-specific features
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
-// Helper function for API calls with proper error handling
+// Helper function to get user info from localStorage
+const getUserFromStorage = () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  } catch (error) {
+    console.error('Error parsing user from localStorage:', error);
+    return null;
+  }
+};
+
+// Helper function for API calls with user context
 const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
+  const user = getUserFromStorage();
   
   const defaultOptions = {
     headers: {
       'Content-Type': 'application/json',
-      // Add user ID header if available from auth context
-      'User-ID': localStorage.getItem('userId') || '1',
+      // Add user context headers
+      ...(user?.id && { 'User-ID': user.id.toString() }),
+      ...(user?.email && { 'User-Email': user.email }),
       // Add authorization token if available
       ...(localStorage.getItem('authToken') && {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -21,7 +34,11 @@ const apiCall = async (endpoint, options = {}) => {
   const config = { ...defaultOptions, ...options };
   
   try {
-    console.log(`Making API call to: ${url}`, { method: config.method || 'GET' });
+    console.log(`Making API call to: ${url}`, { 
+      method: config.method || 'GET', 
+      userEmail: user?.email,
+      userId: user?.id 
+    });
     
     const response = await fetch(url, config);
     
@@ -31,13 +48,11 @@ const apiCall = async (endpoint, options = {}) => {
         const errorData = await response.json();
         errorMessage = errorData.message || errorData.error || errorMessage;
       } catch (e) {
-        // If error response is not JSON, use status text
         errorMessage = response.statusText || errorMessage;
       }
       throw new Error(errorMessage);
     }
     
-    // Handle empty responses (like DELETE)
     if (response.status === 204) {
       return { success: true };
     }
@@ -51,11 +66,10 @@ const apiCall = async (endpoint, options = {}) => {
   }
 };
 
-// Format event data for API (convert frontend format to backend format)
+// Format event data for API
 const formatEventForAPI = (eventData) => {
   const formatDateTime = (date) => {
     if (!date) return null;
-    // Convert to ISO string and remove the 'Z' to match backend LocalDateTime format
     return new Date(date).toISOString().slice(0, 19);
   };
 
@@ -65,8 +79,8 @@ const formatEventForAPI = (eventData) => {
     start: formatDateTime(eventData.start),
     end: formatDateTime(eventData.end),
     location: eventData.location || '',
-    category: (eventData.category || 'work').toUpperCase(), // Convert to backend enum format
-    priority: (eventData.priority || 'medium').toUpperCase(), // Convert to backend enum format
+    category: (eventData.category || 'work').toUpperCase(),
+    priority: (eventData.priority || 'medium').toUpperCase(),
     isAllDay: Boolean(eventData.isAllDay),
     isRecurring: Boolean(eventData.isRecurring),
     attendees: Array.isArray(eventData.attendees) ? eventData.attendees.filter(email => email && email.trim()) : [],
@@ -77,13 +91,39 @@ const formatEventForAPI = (eventData) => {
   };
 };
 
-// Format event data from API (convert backend format to frontend format)
+// Format event data from API with user-specific styling
 const formatEventFromAPI = (event) => {
   const parseDateTime = (dateString) => {
     if (!dateString) return new Date();
-    // Handle both ISO string and LocalDateTime format
     return new Date(dateString);
   };
+
+  // Determine event styling based on user relationship
+  const getEventStyle = (userRelationship) => {
+    switch (userRelationship) {
+      case 'owner':
+        return {
+          borderColor: '#1d4ed8', // Blue-700
+          backgroundColor: '#3b82f6', // Blue-500
+          className: 'event-owned'
+        };
+      case 'attendee':
+        return {
+          borderColor: '#059669', // Green-600  
+          backgroundColor: '#10b981', // Green-500
+          className: 'event-attending'
+        };
+      default:
+        return {
+          borderColor: '#6b7280', // Gray-500
+          backgroundColor: '#9ca3af', // Gray-400
+          className: 'event-other'
+        };
+    }
+  };
+
+  const userRelationship = event.userRelationship || 'none';
+  const eventStyle = getEventStyle(userRelationship);
 
   return {
     id: event.id,
@@ -92,8 +132,8 @@ const formatEventFromAPI = (event) => {
     start: parseDateTime(event.start),
     end: parseDateTime(event.end),
     location: event.location || '',
-    category: (event.category || 'WORK').toLowerCase(), // Convert from backend enum to frontend format
-    priority: (event.priority || 'MEDIUM').toLowerCase(), // Convert from backend enum to frontend format
+    category: (event.category || 'WORK').toLowerCase(),
+    priority: (event.priority || 'MEDIUM').toLowerCase(),
     isAllDay: Boolean(event.isAllDay),
     isRecurring: Boolean(event.isRecurring),
     attendees: Array.isArray(event.attendees) ? event.attendees.map(a => a.email || a) : [],
@@ -105,13 +145,29 @@ const formatEventFromAPI = (event) => {
     })) : [],
     createdAt: event.createdAt ? parseDateTime(event.createdAt) : null,
     updatedAt: event.updatedAt ? parseDateTime(event.updatedAt) : null,
-    createdBy: event.createdBy
+    createdBy: event.createdBy,
+    // User relationship properties
+    isOwner: Boolean(event.isOwner),
+    isAttendee: Boolean(event.isAttendee),
+    userRelationship: userRelationship,
+    // Styling properties for calendar display
+    eventStyle: eventStyle,
+    resource: {
+      userRelationship: userRelationship,
+      isOwner: Boolean(event.isOwner),
+      isAttendee: Boolean(event.isAttendee)
+    }
   };
 };
 
 export const calendarAPI = {
-  // Get all events
-  async getEvents() {
+  // Get current user info
+  getCurrentUser() {
+    return getUserFromStorage();
+  },
+
+  // Get all events (admin view)
+  async getAllEvents() {
     try {
       console.log('API: Getting all events...');
       const events = await apiCall('/events');
@@ -122,25 +178,61 @@ export const calendarAPI = {
     }
   },
 
-  // Get events by date range
-  async getEventsByDateRange(startDate, endDate) {
+  // Get user-specific events (owned + attending)
+  async getUserEvents() {
     try {
-      console.log('API: Getting events by date range...', startDate, endDate);
-      const start = startDate.toISOString();
-      const end = endDate.toISOString();
-      const events = await apiCall(`/events/range?startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}`);
+      console.log('API: Getting user events...');
+      const events = await apiCall('/events/user');
       return Array.isArray(events) ? events.map(formatEventFromAPI) : [];
     } catch (error) {
-      console.error('API: Error getting events by date range:', error);
+      console.error('API: Error getting user events:', error);
+      throw new Error('Failed to fetch your events. Please check your connection and try again.');
+    }
+  },
+
+  // Get events created by user
+  async getEventsCreatedByUser() {
+    try {
+      console.log('API: Getting events created by user...');
+      const events = await apiCall('/events/user/created');
+      return Array.isArray(events) ? events.map(formatEventFromAPI) : [];
+    } catch (error) {
+      console.error('API: Error getting events created by user:', error);
+      throw new Error('Failed to fetch events you created.');
+    }
+  },
+
+  // Get events user is attending
+  async getEventsUserAttending() {
+    try {
+      console.log('API: Getting events user is attending...');
+      const events = await apiCall('/events/user/attending');
+      return Array.isArray(events) ? events.map(formatEventFromAPI) : [];
+    } catch (error) {
+      console.error('API: Error getting events user is attending:', error);
+      throw new Error('Failed to fetch events you are attending.');
+    }
+  },
+
+  // Get events by date range for user
+  async getUserEventsByDateRange(startDate, endDate) {
+    try {
+      console.log('API: Getting user events by date range...', startDate, endDate);
+      const start = startDate.toISOString();
+      const end = endDate.toISOString();
+      const events = await apiCall(`/events/user/range?startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}`);
+      return Array.isArray(events) ? events.map(formatEventFromAPI) : [];
+    } catch (error) {
+      console.error('API: Error getting user events by date range:', error);
       throw new Error('Failed to fetch events by date range.');
     }
   },
 
-  // Get single event by ID
+  // Get single event by ID with user context
   async getEventById(eventId) {
     try {
-      console.log('API: Getting event by ID:', eventId);
-      const event = await apiCall(`/events/${eventId}`);
+      console.log('API: Getting event by ID with user context:', eventId);
+      const event = await apiCall(`/events/${eventId}/user`);
       return formatEventFromAPI(event);
     } catch (error) {
       console.error('API: Error getting event by ID:', error);
@@ -156,7 +248,6 @@ export const calendarAPI = {
     try {
       console.log('API: Creating event...', eventData);
       
-      // Validate required fields
       if (!eventData.title || !eventData.title.trim()) {
         throw new Error('Event title is required.');
       }
@@ -184,7 +275,6 @@ export const calendarAPI = {
     try {
       console.log('API: Updating event...', eventId, eventData);
       
-      // Validate required fields
       if (!eventData.title || !eventData.title.trim()) {
         throw new Error('Event title is required.');
       }
@@ -205,6 +295,8 @@ export const calendarAPI = {
       console.error('API: Error updating event:', error);
       if (error.message.includes('404')) {
         throw new Error('Event not found.');
+      } else if (error.message.includes('403') || error.message.includes('permission')) {
+        throw new Error('You do not have permission to update this event.');
       }
       throw new Error(error.message || 'Failed to update event.');
     }
@@ -222,68 +314,70 @@ export const calendarAPI = {
       console.error('API: Error deleting event:', error);
       if (error.message.includes('404')) {
         throw new Error('Event not found.');
+      } else if (error.message.includes('403') || error.message.includes('permission')) {
+        throw new Error('Only the event creator can delete this event.');
       }
       throw new Error('Failed to delete event.');
     }
   },
 
-  // Search events
-  async searchEvents(query) {
+  // Search user events
+  async searchUserEvents(query) {
     try {
-      console.log('API: Searching events...', query);
+      console.log('API: Searching user events...', query);
       if (!query || !query.trim()) {
         return [];
       }
-      const events = await apiCall(`/events/search?q=${encodeURIComponent(query.trim())}`);
+      const events = await apiCall(`/events/user/search?q=${encodeURIComponent(query.trim())}`);
       return Array.isArray(events) ? events.map(formatEventFromAPI) : [];
     } catch (error) {
-      console.error('API: Error searching events:', error);
+      console.error('API: Error searching user events:', error);
       throw new Error('Failed to search events.');
     }
   },
 
-  // Get events by category
-  async getEventsByCategory(category) {
+  // Get events by category for user
+  async getUserEventsByCategory(category) {
     try {
-      console.log('API: Getting events by category...', category);
+      console.log('API: Getting user events by category...', category);
       const apiCategory = category.toUpperCase();
-      const events = await apiCall(`/events/category/${apiCategory}`);
+      const events = await apiCall(`/events/user/category/${apiCategory}`);
       return Array.isArray(events) ? events.map(formatEventFromAPI) : [];
     } catch (error) {
-      console.error('API: Error getting events by category:', error);
+      console.error('API: Error getting user events by category:', error);
       throw new Error('Failed to fetch events by category.');
     }
   },
 
-  // Get upcoming events (next 7 days)
-  async getUpcomingEvents() {
+  // Get upcoming events for user
+  async getUserUpcomingEvents() {
     try {
-      console.log('API: Getting upcoming events...');
-      const events = await apiCall('/events/upcoming');
+      console.log('API: Getting user upcoming events...');
+      const events = await apiCall('/events/user/upcoming');
       return Array.isArray(events) ? events.map(formatEventFromAPI) : [];
     } catch (error) {
-      console.error('API: Error getting upcoming events:', error);
+      console.error('API: Error getting user upcoming events:', error);
       throw new Error('Failed to fetch upcoming events.');
     }
   },
 
-  // Get today's events
-  async getTodayEvents() {
+  // Get today's events for user
+  async getUserTodayEvents() {
     try {
-      console.log('API: Getting today\'s events...');
-      const events = await apiCall('/events/today');
+      console.log('API: Getting user today\'s events...');
+      const events = await apiCall('/events/user/today');
       return Array.isArray(events) ? events.map(formatEventFromAPI) : [];
     } catch (error) {
-      console.error('API: Error getting today\'s events:', error);
+      console.error('API: Error getting user today\'s events:', error);
       throw new Error('Failed to fetch today\'s events.');
     }
   },
 
-  // Get events statistics
-  async getEventStats() {
+  // Get user-specific event statistics
+  async getUserEventStats() {
     try {
-      console.log('API: Getting event statistics...');
-      const stats = await apiCall('/events/stats');
+      console.log('API: Getting user event statistics...');
+      const stats = await apiCall('/events/user/stats');
       return {
         total: stats.total || 0,
         byCategory: {
@@ -292,31 +386,55 @@ export const calendarAPI = {
           health: stats.healthEvents || 0,
           education: stats.educationEvents || 0
         },
-        byPriority: {
-          high: 0, // Add these to backend if needed
-          medium: 0,
-          low: 0
+        byOwnership: {
+          owned: stats.createdEvents || 0,
+          attending: stats.attendingEvents || 0
         },
         upcoming: stats.upcomingEvents || 0,
         today: stats.todayEvents || 0
       };
     } catch (error) {
-      console.error('API: Error getting event stats:', error);
+      console.error('API: Error getting user event stats:', error);
       return {
         total: 0,
         byCategory: { work: 0, personal: 0, health: 0, education: 0 },
-        byPriority: { high: 0, medium: 0, low: 0 },
+        byOwnership: { owned: 0, attending: 0 },
         upcoming: 0,
         today: 0
       };
     }
   },
 
+  // Legacy methods for backward compatibility
+  async getEvents() {
+    return this.getUserEvents();
+  },
+
+  async searchEvents(query) {
+    return this.searchUserEvents(query);
+  },
+
+  async getEventsByCategory(category) {
+    return this.getUserEventsByCategory(category);
+  },
+
+  async getUpcomingEvents() {
+    return this.getUserUpcomingEvents();
+  },
+
+  async getTodayEvents() {
+    return this.getUserTodayEvents();
+  },
+
+  async getEventStats() {
+    return this.getUserEventStats();
+  },
+
   // Utility method to test API connection
   async testConnection() {
     try {
       console.log('API: Testing connection...');
-      await apiCall('/events/stats');
+      await apiCall('/events/user/stats');
       return { success: true, message: 'API connection successful' };
     } catch (error) {
       console.error('API: Connection test failed:', error);
@@ -325,33 +443,31 @@ export const calendarAPI = {
   }
 };
 
-// Export helper functions for advanced usage
+// Export helper functions
 export const apiHelpers = {
-  // Manual API call for custom endpoints
   makeApiCall: apiCall,
-  
-  // Format helpers
   formatEventForAPI,
   formatEventFromAPI,
-  
-  // Get API base URL
   getApiBaseUrl: () => API_BASE_URL,
+  getCurrentUser: getUserFromStorage,
   
-  // Set auth token
-  setAuthToken: (token) => {
-    if (token) {
-      localStorage.setItem('authToken', token);
-    } else {
-      localStorage.removeItem('authToken');
+  // Event styling helpers
+  getEventStyleClass: (userRelationship) => {
+    switch (userRelationship) {
+      case 'owner': return 'event-owned';
+      case 'attendee': return 'event-attending';
+      default: return 'event-other';
     }
   },
   
-  // Set user ID
-  setUserId: (userId) => {
-    if (userId) {
-      localStorage.setItem('userId', userId.toString());
-    } else {
-      localStorage.removeItem('userId');
+  getEventColors: (userRelationship) => {
+    switch (userRelationship) {
+      case 'owner':
+        return { backgroundColor: '#3b82f6', borderColor: '#1d4ed8' };
+      case 'attendee':
+        return { backgroundColor: '#10b981', borderColor: '#059669' };
+      default:
+        return { backgroundColor: '#9ca3af', borderColor: '#6b7280' };
     }
   }
 };
