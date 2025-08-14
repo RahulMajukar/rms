@@ -709,7 +709,7 @@ export default function CalendarView() {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col overflow-hidden ${connectionStatus === 'disconnected' ? 'mt-12' : ''}`}>
+      <div className={`flex-1 flex flex-col overflow-scroll ${connectionStatus === 'disconnected' ? 'mt-12' : ''}`}>
         {/* Calendar Toolbar */}
         <CalendarToolbar
           view={view}

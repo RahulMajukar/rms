@@ -100,7 +100,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
           </div>
         ))}
         
-        {/* Calendar days */}
+        {/* Calendar days - Updated version */}
         {weeks.map((week, weekIndex) =>
           week.map((day, dayIndex) => {
             const isCurrentMonth = day.month() === monthIndex
@@ -129,12 +129,29 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
                   ${hasEvents ? 'cursor-pointer' : 'cursor-default'}
                 `}
               >
-                <span className="text-xs font-medium">
+                {/* Event Rectangle Indicators at Top */}
+                {hasEvents && (
+                  <div className="absolute top-0 left-0 right-0 flex space-x-0.5 px-0.5">
+                    {dayEvents.slice(0, 2).map((event, index) => (
+                      <div
+                        key={event.id || index}
+                        className={`h-1 flex-1 ${getCategoryColor(event.category)}`}
+                        title={event.title}
+                      />
+                    ))}
+                    {dayEvents.length > 2 && (
+                      <div className="h-1 flex-1 bg-gray-400" />
+                    )}
+                  </div>
+                )}
+
+                {/* Day Number */}
+                <span className={`text-xs font-medium ${hasEvents ? 'mt-1' : ''}`}>
                   {day.date()}
                 </span>
                 
-                {/* Event indicators */}
-                {hasEvents && (
+                {/* Remove or keep the bottom dots based on preference */}
+                {/* {hasEvents && (
                   <div className="absolute bottom-0 flex space-x-0.5">
                     {dayEvents.slice(0, 3).map((event, index) => (
                       <div
@@ -146,7 +163,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
                       <div className="w-1 h-1 rounded-full bg-gray-400" />
                     )}
                   </div>
-                )}
+                )} */}
               </div>
             )
           })
@@ -241,7 +258,7 @@ export default function YearView({ date, events, onEventClick, onDateClick, onMo
   const educationEvents = Array.isArray(events) ? events.filter(e => e.category === 'education').length : 0
   
   return (
-    <div className="h-screen flex flex-col bg-white overflow-hidden">
+    <div className="min-h-max flex flex-col bg-white overflow-auto">
       {/* Year Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 p-6 z-10 flex-shrink-0">
         <div className="flex items-center justify-between">
